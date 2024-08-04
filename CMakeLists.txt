@@ -35,7 +35,7 @@ if (WIN32)
 endif ()
 
 include_directories(include)
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.c")
 add_library(mempagehelper SHARED ${SOURCES})
 
 include(CheckIPOSupported)
