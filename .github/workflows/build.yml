@@ -46,14 +46,14 @@ jobs:
       name: Generate for Windows
       working-directory: ./build
       run: |
-       cmake -A ${{ matrix.arch }} ..
+       cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
        
     - if: matrix.compiler != 'msvc'
       name: Generate for Posix
       working-directory: ./build
       run: |
        export CC=${{ matrix.compiler }}
-       cmake -DCMAKE_BUILD_TYPE=Release ..
+       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release ..
 
     - if: matrix.compiler == 'msvc'
       name: Build for Windows
@@ -71,4 +71,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: mempagehelper-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}
-        path: ${{ github.workspace }}/build/Release
+        path: ${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }}
