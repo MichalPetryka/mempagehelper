@@ -11,17 +11,23 @@
 #else
 #include <unistd.h>
 #include <errno.h>
+#include <sys/mman.h>
 #endif
 
 static_assert(sizeof(size_t) == sizeof(uintptr_t), "Only platforms with ptr sized size are supported!");
 
-thread_local static uint32_t last_error = 0;
+#ifdef __STDC_NO_THREADS__
+#define tls __thread
+#else
+#define tls thread_local
+#endif
+tls static uint32_t last_error = 0;
 static uint32_t page_size_cache = 0;
 #if MEMPAGEHELPER_WINDOWS
 static uint32_t page_alloc_granularity_cache = 0;
 #endif
 
-MEMPAGEHELPER_INTERNAL(void) fetch_sys_info()
+MEMPAGEHELPER_INTERNAL(void) fetch_sys_info(void)
 {
 #if MEMPAGEHELPER_WINDOWS
 	SYSTEM_INFO info = {};
@@ -33,7 +39,7 @@ MEMPAGEHELPER_INTERNAL(void) fetch_sys_info()
 #endif
 }
 
-uint32_t page_size()
+uint32_t page_size(void)
 {
 	if (page_size_cache != 0)
 		return page_size_cache;
@@ -42,7 +48,7 @@ uint32_t page_size()
 	return page_size_cache;
 }
 
-uint32_t page_alloc_granularity()
+uint32_t page_alloc_granularity(void)
 {
 #if MEMPAGEHELPER_WINDOWS
 #define granularity_cache page_alloc_granularity_cache
@@ -85,7 +91,7 @@ int32_t page_free(void* memory, size_t size)
 #define INVALID_PARAM EINVAL
 #endif
 
-MEMPAGEHELPER_INTERNAL(bool) convert_protection(PAGE_ACCESS access, PROTECTION_TYPE * protection)
+MEMPAGEHELPER_INTERNAL(bool) convert_protection(uint32_t access, PROTECTION_TYPE* protection)
 {
 	assert(protection != NULL);
 	PROTECTION_TYPE protect;
@@ -133,7 +139,7 @@ MEMPAGEHELPER_INTERNAL(bool) convert_protection(PAGE_ACCESS access, PROTECTION_T
 	return true;
 }
 
-void* page_alloc(size_t size, PAGE_ACCESS access)
+void* page_alloc(size_t size, uint32_t access)
 {
 	PROTECTION_TYPE protect;
 	if (!convert_protection(access, &protect))
@@ -165,7 +171,7 @@ void* page_alloc(size_t size, PAGE_ACCESS access)
 	return addr;
 }
 
-int32_t page_change_access(void* memory, size_t size, PAGE_ACCESS access)
+int32_t page_change_access(void* memory, size_t size, uint32_t access)
 {
 	PROTECTION_TYPE protect;
 	if (!convert_protection(access, &protect))
@@ -240,7 +246,7 @@ int32_t page_flush_instructions(void* memory, size_t size)
 #endif
 }
 
-uint32_t page_last_error()
+uint32_t page_last_error(void)
 {
 	return last_error;
 }
@@ -309,7 +315,7 @@ unsigned char* page_error_message_utf8(uint32_t error)
 #endif
 }
 
-uint32_t page_lib_version()
+uint32_t page_lib_version(void)
 {
 	return MEMPAGEHELPER_VERSION;
 }
