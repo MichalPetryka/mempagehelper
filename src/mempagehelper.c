@@ -272,7 +272,7 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 		free(buffer);
 		return NULL;
 	}
-#elif (((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE) || defined(__APPLE__)
+#elif ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE) || defined(__APPLE__)
 	int code = strerror_r((int)error, (char*)buffer, ERROR_BUFFER_SIZE);
 	if (code != 0)
 	{
