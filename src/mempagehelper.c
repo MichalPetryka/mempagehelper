@@ -64,8 +64,10 @@ uint32_t page_alloc_granularity(void)
 #undef granularity_cache
 }
 
+#if MEMPAGEHELPER_WINDOWS
 #pragma warning( push )
 #pragma warning( disable : 4100 )
+#endif
 int32_t page_free(void* memory, size_t size)
 {
 #if MEMPAGEHELPER_WINDOWS
@@ -82,7 +84,9 @@ int32_t page_free(void* memory, size_t size)
 	last_error = 0;
 	return 0;
 }
+#if MEMPAGEHELPER_WINDOWS
 #pragma warning( pop )
+#endif
 
 #if MEMPAGEHELPER_WINDOWS
 #define PROTECTION_TYPE DWORD
@@ -268,7 +272,7 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 		free(buffer);
 		return NULL;
 	}
-#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE && !defined(__APPLE__)
 	int code = strerror_r((int)error, buffer, ERROR_BUFFER_SIZE);
 	if (code != 0)
 	{
