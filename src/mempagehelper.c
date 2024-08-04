@@ -272,19 +272,19 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 		free(buffer);
 		return NULL;
 	}
-#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE && !defined(__APPLE__)
-	int code = strerror_r((int)error, buffer, ERROR_BUFFER_SIZE);
+#elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+	int code = strerror_r((int)error, (char*)buffer, ERROR_BUFFER_SIZE);
 	if (code != 0)
 	{
 		free(buffer);
 		return NULL;
 	}
 #else
-	char* message = strerror_r((int)error, buffer, ERROR_BUFFER_SIZE);
+	unsigned char* message = (unsigned char*)strerror_r((int)error, (char*)buffer, ERROR_BUFFER_SIZE);
 	if (message != buffer)
 	{
 		size_t len = strlen(message);
-		if (len > size - 2)
+		if (len > ERROR_BUFFER_SIZE - 2)
 		{
 			free(buffer);
 			return NULL;
