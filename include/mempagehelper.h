@@ -63,7 +63,7 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_ALLOCATOR(free, index)
-#elif APPLE
+#elif defined(APPLE)
 #define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc))
 #else
 #define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc, malloc (free, index)))
@@ -88,8 +88,8 @@ extern "C" {
 		PAGE_ACCESS_EXECUTE = 4
 	};
 
-	MEMPAGEHELPER_PUBLIC(uint32_t) page_size();
-	MEMPAGEHELPER_PUBLIC(uint32_t) page_alloc_granularity();
+	MEMPAGEHELPER_PUBLIC(uint32_t) page_size(void);
+	MEMPAGEHELPER_PUBLIC(uint32_t) page_alloc_granularity(void);
 
 	MEMPAGEHELPER_PUBLIC(int32_t) page_free(void* memory, size_t size);
 	MEMPAGEHELPER_ALLOCATOR(page_free, 1) MEMPAGEHELPER_PUBLIC(void*) page_alloc(size_t size, PAGE_ACCESS access);
@@ -100,12 +100,12 @@ extern "C" {
 
 	MEMPAGEHELPER_PUBLIC(int32_t) page_flush_instructions(void* memory, size_t size);
 
-	MEMPAGEHELPER_PUBLIC(uint32_t) page_last_error();
+	MEMPAGEHELPER_PUBLIC(uint32_t) page_last_error(void);
 	MEMPAGEHELPER_PUBLIC(void) page_error_free(void* message);
 	MEMPAGEHELPER_ALLOCATOR(page_error_free, 1) MEMPAGEHELPER_PUBLIC(MEMPAGEHELPER_SYSCHAR*) page_error_message_sys(uint32_t error);
 	MEMPAGEHELPER_ALLOCATOR(page_error_free, 1) MEMPAGEHELPER_PUBLIC(unsigned char*) page_error_message_utf8(uint32_t error);
 
-	MEMPAGEHELPER_PUBLIC(uint32_t) page_lib_version();
+	MEMPAGEHELPER_PUBLIC(uint32_t) page_lib_version(void);
 
 #ifdef __cplusplus
 }
