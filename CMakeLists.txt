@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0092 NEW)
 cmake_policy(SET CMP0077 NEW)
 
+project(mempagehelper)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -37,8 +39,6 @@ if (WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
 	add_definitions(-DNTDDI_VERSION=NTDDI_WIN7 -DWINVER=_WIN32_WINNT_WIN7 -D_WIN32_WINNT=_WIN32_WINNT_WIN7)
 endif ()
-
-project(mempagehelper)
 
 include_directories(include)
 file(GLOB_RECURSE SOURCES "src/*.cpp")
