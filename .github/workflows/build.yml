@@ -68,7 +68,7 @@ jobs:
        cmake --build . -- -j8
 
     - name: Upload ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }} Build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mempagehelper-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}
         path: ${{ github.workspace }}/build/Release
