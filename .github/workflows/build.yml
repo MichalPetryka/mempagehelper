@@ -8,7 +8,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-latest, macos-latest, macos-13]
         include:
         - os: ubuntu-20.04
           arch: x64
@@ -42,26 +41,29 @@ jobs:
     - name: Make directory
       run: |
        mkdir build
-       cd build
 
     - if: matrix.compiler == 'msvc'
       name: Generate for Windows
+      working-directory: ./build
       run: |
        cmake -A ${{ matrix.arch }} ..
        
     - if: matrix.compiler != 'msvc'
       name: Generate for Posix
+      working-directory: ./build
       run: |
        export CC=${{ matrix.compiler }}
        cmake -DCMAKE_BUILD_TYPE=Release ..
 
     - if: matrix.compiler == 'msvc'
       name: Build for Windows
+      working-directory: ./build
       run: |
        cmake --build . --config Release
        
     - if: matrix.compiler != 'msvc'
       name: Build for Posix
+      working-directory: ./build
       run: |
        cmake --build . -- -j8
 
