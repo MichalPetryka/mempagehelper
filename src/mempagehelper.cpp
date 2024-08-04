@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef APPLE
+#ifndef __STDC_NO_THREADS__
 #include <threads.h>
 #endif
 #if MEMPAGEHELPER_WINDOWS
