@@ -63,6 +63,8 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_ALLOCATOR(free, index)
+#elif APPLE
+#define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc))
 #else
 #define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc, malloc (free, index)))
 #endif
@@ -99,9 +101,9 @@ extern "C" {
 	MEMPAGEHELPER_PUBLIC(int32_t) page_flush_instructions(void* memory, size_t size);
 
 	MEMPAGEHELPER_PUBLIC(uint32_t) page_last_error();
+	MEMPAGEHELPER_PUBLIC(void) page_error_free(void* message);
 	MEMPAGEHELPER_ALLOCATOR(page_error_free, 1) MEMPAGEHELPER_PUBLIC(MEMPAGEHELPER_SYSCHAR*) page_error_message_sys(uint32_t error);
 	MEMPAGEHELPER_ALLOCATOR(page_error_free, 1) MEMPAGEHELPER_PUBLIC(unsigned char*) page_error_message_utf8(uint32_t error);
-	MEMPAGEHELPER_PUBLIC(void) page_error_free(void* message);
 
 	MEMPAGEHELPER_PUBLIC(uint32_t) page_lib_version();
 
