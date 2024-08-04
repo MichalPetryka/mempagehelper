@@ -33,8 +33,10 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_PUBLIC_CCONV __cdecl
-#else
+#else MEMPAGEHELPER_WINDOWS
 #define MEMPAGEHELPER_PUBLIC_CCONV __attribute__ ((cdecl))
+#else
+#define MEMPAGEHELPER_PUBLIC_CCONV
 #endif
 
 #if __has_declspec_attribute(MEMPAGEHELPER_DLL)
@@ -47,7 +49,7 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_INTERNAL_CCONV __vectorcall
-#elif defined(__APPLE__)
+#else !MEMPAGEHELPER_WINDOWS
 #define MEMPAGEHELPER_INTERNAL_CCONV
 #elif __has_attribute(vectorcall)
 #define MEMPAGEHELPER_INTERNAL_CCONV __attribute__ ((vectorcall))
@@ -65,10 +67,8 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_ALLOCATOR(free, index)
-#elif defined(__APPLE__)
-#define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc))
 #else
-#define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc, malloc (free, index)))
+#define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc))
 #endif
 
 #ifdef __cplusplus
