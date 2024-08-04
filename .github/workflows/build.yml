@@ -1,0 +1,72 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} with ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-latest, macos-latest, macos-13]
+        include:
+        - os: ubuntu-20.04
+          arch: x64
+          compiler: gcc
+        - os: ubuntu-20.04
+          arch: x64
+          compiler: clang
+        - os: windows-latest
+          arch: x64
+          compiler: msvc
+        - os: windows-latest
+          arch: Win32
+          compiler: msvc
+        - os: macos-latest
+          arch: arm64
+          compiler: clang
+        - os: macos-13
+          arch: x64
+          compiler: clang
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - if: matrix.os == 'ubuntu-20.04'
+      name: Install Linux packages
+      run: |
+       sudo apt-get update
+       sudo apt-get install -y build-essential make gcc libc-dev cmake llvm
+
+    - name: Make directory
+      run: |
+       mkdir build
+       cd build
+
+    - if: matrix.compiler == 'msvc'
+      name: Generate for Windows
+      run: |
+       cmake -A ${{ matrix.arch }} ..
+       
+    - if: matrix.compiler != 'msvc'
+      name: Generate for Posix
+      run: |
+       export CC=${{ matrix.compiler }}
+       cmake -DCMAKE_BUILD_TYPE=Release ..
+
+    - if: matrix.compiler == 'msvc'
+      name: Build for Windows
+      run: |
+       cmake --build . --config Release
+       
+    - if: matrix.compiler != 'msvc'
+      name: Build for Posix
+      run: |
+       cmake --build . -- -j8
+
+    - name: Upload ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }} Build
+      uses: actions/upload-artifact@v3
+      with:
+        name: mempagehelper-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}
+        path: ${{ github.workspace }}/build/Release
