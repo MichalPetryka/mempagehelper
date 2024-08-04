@@ -94,8 +94,8 @@ extern "C" {
 	MEMPAGEHELPER_PUBLIC(uint32_t) page_alloc_granularity(void);
 
 	MEMPAGEHELPER_PUBLIC(int32_t) page_free(void* memory, size_t size);
-	MEMPAGEHELPER_ALLOCATOR(page_free, 1) MEMPAGEHELPER_PUBLIC(void*) page_alloc(size_t size, PAGE_ACCESS access);
-	MEMPAGEHELPER_PUBLIC(int32_t) page_change_access(void* memory, size_t size, PAGE_ACCESS access);
+	MEMPAGEHELPER_ALLOCATOR(page_free, 1) MEMPAGEHELPER_PUBLIC(void*) page_alloc(size_t size, uint32_t access);
+	MEMPAGEHELPER_PUBLIC(int32_t) page_change_access(void* memory, size_t size, uint32_t access);
 
 	MEMPAGEHELPER_PUBLIC(int32_t) page_lock(void* memory, size_t size);
 	MEMPAGEHELPER_PUBLIC(int32_t) page_unlock(void* memory, size_t size);
