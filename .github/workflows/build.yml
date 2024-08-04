@@ -56,7 +56,7 @@ jobs:
       working-directory: ./build
       run: |
        export CC=${{ matrix.compiler }}
-       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -DCMAKE_OSX_ARCHITECTURES= -DCMAKE_BUILD_TYPE=Release ..
+       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release ..
 
     - if: matrix.compiler == 'msvc'
       name: Build for Windows
