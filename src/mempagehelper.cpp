@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef APPLE
 #include <threads.h>
+#endif
 #if MEMPAGEHELPER_WINDOWS
 #include <Windows.h>
 #else
@@ -243,6 +245,11 @@ uint32_t page_last_error()
 	return last_error;
 }
 
+void page_error_free(void* message)
+{
+	free(message);
+}
+
 #define ERROR_BUFFER_SIZE (64 * 1024)
 
 MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
@@ -300,11 +307,6 @@ unsigned char* page_error_message_utf8(uint32_t error)
 #else
 	return page_error_message_sys(error);
 #endif
-}
-
-void page_error_free(void* message)
-{
-	free(message);
 }
 
 uint32_t page_lib_version()
