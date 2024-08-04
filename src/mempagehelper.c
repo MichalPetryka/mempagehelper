@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #ifndef __STDC_NO_THREADS__
 #include <threads.h>
 #endif
@@ -17,11 +18,11 @@
 static_assert(sizeof(size_t) == sizeof(uintptr_t), "Only platforms with ptr sized size are supported!");
 
 #ifdef __STDC_NO_THREADS__
-#define tls __thread
+static __thread uint32_t last_error = 0;
 #else
-#define tls thread_local
+thread_local static uint32_t last_error = 0;
 #endif
-tls static uint32_t last_error = 0;
+
 static uint32_t page_size_cache = 0;
 #if MEMPAGEHELPER_WINDOWS
 static uint32_t page_alloc_granularity_cache = 0;
