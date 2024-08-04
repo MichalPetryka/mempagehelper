@@ -46,7 +46,7 @@ jobs:
       name: Generate for Windows
       working-directory: ./build
       run: |
-       cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
+       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
        
     - if: matrix.compiler != 'msvc'
       name: Generate for Posix
