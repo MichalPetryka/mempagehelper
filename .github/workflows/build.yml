@@ -19,10 +19,13 @@ jobs:
           arch: x64
           compiler: msvc
         - os: windows-latest
+          arch: ARM64
+          compiler: msvc
+        - os: windows-latest
           arch: Win32
           compiler: msvc
         - os: macos-latest
-          arch: arm64
+          arch: ARM64
           compiler: clang
         - os: macos-13
           arch: x64
@@ -46,7 +49,7 @@ jobs:
       name: Generate for Windows
       working-directory: ./build
       run: |
-       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
+       cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
        
     - if: matrix.compiler != 'msvc'
       name: Generate for Posix
