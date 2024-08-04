@@ -47,6 +47,8 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_INTERNAL_CCONV __vectorcall
+#elif defined(__APPLE__)
+#define MEMPAGEHELPER_INTERNAL_CCONV
 #elif __has_attribute(vectorcall)
 #define MEMPAGEHELPER_INTERNAL_CCONV __attribute__ ((vectorcall))
 #elif __has_attribute(fastcall)
