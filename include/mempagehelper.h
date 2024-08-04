@@ -63,7 +63,7 @@
 
 #if MEMPAGEHELPER_MSVC
 #define MEMPAGEHELPER_ALLOCATOR(free, index)
-#elif defined(APPLE)
+#elif defined(__APPLE__)
 #define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc))
 #else
 #define MEMPAGEHELPER_ALLOCATOR(free, index) __attribute__ ((malloc, malloc (free, index)))
