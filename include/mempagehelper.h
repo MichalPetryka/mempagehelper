@@ -2,6 +2,7 @@
 #define MEMPAGEHELPER_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #if defined(_MSC_VER)
 #define MEMPAGEHELPER_MSVC 1
@@ -78,7 +79,7 @@ extern "C" {
 #define MEMPAGEHELPER_SYSCHAR unsigned char
 #endif
 
-	enum PAGE_ACCESS : uint32_t {
+	enum PAGE_ACCESS {
 		PAGE_ACCESS_NONE = 0,
 		PAGE_ACCESS_READ = 1,
 		PAGE_ACCESS_WRITE = 2,
