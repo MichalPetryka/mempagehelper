@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    name: Build ${{ matrix.arch }} with ${{ matrix.compiler }} on ${{ matrix.os }}
+    name: Build ${{ matrix.arch }} ${{ matrix.config }} with ${{ matrix.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -12,24 +12,43 @@ jobs:
         - os: ubuntu-20.04
           arch: x64
           compiler: gcc
+          config: Release
         - os: ubuntu-20.04
           arch: x64
           compiler: clang
+          config: Release
         - os: windows-latest
           arch: x64
           compiler: msvc
+          config: Release
         - os: windows-latest
           arch: ARM64
           compiler: msvc
+          config: Release
         - os: windows-latest
           arch: Win32
           compiler: msvc
+          config: Release
         - os: macos-latest
           arch: arm64
           compiler: clang
+          config: Release
         - os: macos-latest
           arch: x86_64
           compiler: clang
+          config: Release
+        - os: windows-latest
+          arch: x64
+          compiler: msvc
+          config: Debug
+        - os: macos-latest
+          arch: arm64
+          compiler: clang
+          config: Debug
+        - os: ubuntu-20.04
+          arch: x64
+          compiler: gcc
+          config: Debug
     timeout-minutes: 30
 
     steps:
@@ -49,20 +68,20 @@ jobs:
       name: Generate for Windows
       working-directory: ./build
       run: |
-       cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -A ${{ matrix.arch }} ..
+       cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/Release/${{ matrix.arch }} -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/Debug/${{ matrix.arch }} -A ${{ matrix.arch }} ..
        
     - if: matrix.compiler != 'msvc'
       name: Generate for Posix
       working-directory: ./build
       run: |
        export CC=${{ matrix.compiler }}
-       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release ..
+       cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.config }}/${{ matrix.arch }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=${{ matrix.config }} ..
 
     - if: matrix.compiler == 'msvc'
       name: Build for Windows
       working-directory: ./build
       run: |
-       cmake --build . --config Release
+       cmake --build . --config ${{ matrix.config }}
        
     - if: matrix.compiler != 'msvc'
       name: Build for Posix
@@ -70,8 +89,8 @@ jobs:
       run: |
        cmake --build . -- -j8
 
-    - name: Upload ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }} Build
+    - name: Upload ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-${{ matrix.config }} Build
       uses: actions/upload-artifact@v4
       with:
-        name: mempagehelper-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}
-        path: ${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.arch }}
+        name: mempagehelper-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-${{ matrix.config }}
+        path: ${{ github.workspace }}/build/bin/${{ matrix.compiler }}/${{ matrix.os }}/${{ matrix.config }}/${{ matrix.arch }}
