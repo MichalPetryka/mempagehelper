@@ -455,7 +455,7 @@ unsigned char* page_error_message_utf8(uint32_t error)
 {
 #if MEMPAGEHELPER_WINDOWS
 	MEMPAGEHELPER_SYSCHAR* ptr = NULL;
-	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, error, 0, &ptr, 1, NULL) == 0)
+	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, error, 0, (LPWSTR)&ptr, 1, NULL) == 0)
 	{
 		LocalFree(ptr);
 		return NULL;
