@@ -38,6 +38,8 @@ include_directories(include)
 file(GLOB_RECURSE SOURCES "src/*.c")
 add_library(mempagehelper SHARED ${SOURCES})
 
+target_compile_definitions(mempagehelper PUBLIC $<$<CONFIG:Debug>:MEMPAGEHELPER_TRACKING>)
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result OUTPUT output)
 if(result)

@@ -28,6 +28,11 @@ static uint32_t page_size_cache = 0;
 static uint32_t page_alloc_granularity_cache = 0;
 #endif
 
+#ifdef MEMPAGEHELPER_TRACKING
+#else
+static void* error_cache = NULL;
+#endif
+
 MEMPAGEHELPER_INTERNAL(void) fetch_sys_info(void)
 {
 #if MEMPAGEHELPER_WINDOWS
@@ -63,30 +68,6 @@ uint32_t page_alloc_granularity(void)
 	return granularity_cache;
 #undef granularity_cache
 }
-
-#if MEMPAGEHELPER_WINDOWS
-#pragma warning( push )
-#pragma warning( disable : 4100 )
-#endif
-int32_t page_free(void* memory, size_t size)
-{
-#if MEMPAGEHELPER_WINDOWS
-	if (!VirtualFree(memory, 0, MEM_RELEASE))
-	{
-		last_error = GetLastError();
-#else
-	if (munmap(memory, size) != 0)
-	{
-		last_error = (uint32_t)errno;
-#endif
-		return 1;
-	}
-	last_error = 0;
-	return 0;
-}
-#if MEMPAGEHELPER_WINDOWS
-#pragma warning( pop )
-#endif
 
 #if MEMPAGEHELPER_WINDOWS
 #define PROTECTION_TYPE DWORD
@@ -140,22 +121,138 @@ MEMPAGEHELPER_INTERNAL(bool) convert_protection(uint32_t access, PROTECTION_TYPE
 		protect |= PROT_EXEC;
 #endif
 
-	*protection = protect;
+	* protection = protect;
 	return true;
 }
+
+#ifdef MEMPAGEHELPER_TRACKING
+MEMPAGEHELPER_INTERNAL(void) change_access(void* page, uint32_t access, uint32_t old_access)
+{
+	PROTECTION_TYPE protection = 0;
+	bool converted = convert_protection(access, &protection);
+	assert(converted);
+	PROTECTION_TYPE old_protection = 0;
+	converted = convert_protection(old_access, &old_protection);
+	assert(converted);
+#if MEMPAGEHELPER_WINDOWS
+	DWORD old_protect = 0;
+	VirtualProtect(page, page_size(), protection, &old_protect);
+	assert(old_protect == old_protection);
+#else
+	if (old_access & PAGE_ACCESS_READ)
+	{
+		size_t test_data = 0;
+		memcpy(&test_data, page, sizeof(size_t));
+		assert(test_data != 0);
+	}
+	mprotect(page, page_size(), protection);
+#endif
+}
+
+MEMPAGEHELPER_INTERNAL(void*) mark_memory(void* memory, size_t size, uint32_t alloc_access)
+{
+	assert(memory != NULL);
+	uint32_t page = page_size();
+	assert((uintptr_t)memory % page == 0);
+	memcpy(memory, &size, sizeof(size_t));
+	memcpy((unsigned char*)memory + page - 32, "Memory start validation string!?", 32);
+	change_access(memory, PAGE_ACCESS_NONE, alloc_access);
+	memory = (unsigned char*)memory + page;
+
+	size_t real_size = size;
+	size_t last_page_content = size % page;
+	if (last_page_content != 0)
+	{
+		memcpy((unsigned char*)memory + size, "End of memory string validation!", min(32, page - last_page_content));
+		real_size += page - last_page_content;
+	}
+	unsigned char* end = (unsigned char*)memory + real_size;
+	memcpy(end, "After alloc check text message!?", 32);
+	change_access(end, PAGE_ACCESS_NONE, alloc_access);
+	return memory;
+}
+
+MEMPAGEHELPER_INTERNAL(void) validate_memory(void* memory, size_t size)
+{
+	assert(memory != NULL);
+	uint32_t page = page_size();
+	assert((uintptr_t)memory % page == 0);
+	unsigned char* real_start = (unsigned char*)memory - page;
+	change_access(real_start, PAGE_ACCESS_READ, PAGE_ACCESS_NONE);
+	size_t real_size = 0;
+	memcpy(&real_size, real_start, sizeof(size_t));
+	assert(size == real_size);
+	assert(memcmp((unsigned char*)memory - 32, "Memory start validation string!?", 32) == 0);
+	change_access(real_start, PAGE_ACCESS_NONE, PAGE_ACCESS_READ);
+	size_t last_page_content = size % page;
+	if (last_page_content != 0)
+	{
+		assert(memcmp((unsigned char*)memory + size, "End of memory string validation!", min(32, page - last_page_content)) == 0);
+		real_size += page - last_page_content;
+	}
+	unsigned char* end = (unsigned char*)memory + real_size;
+	change_access(end, PAGE_ACCESS_READ, PAGE_ACCESS_NONE);
+	assert(memcmp(end, "After alloc check text message!?", 32) == 0);
+	change_access(end, PAGE_ACCESS_NONE, PAGE_ACCESS_READ);
+}
+#endif
+
+
+#if MEMPAGEHELPER_WINDOWS
+#pragma warning( push )
+#pragma warning( disable : 4100 )
+#endif
+int32_t page_free(void* memory, size_t size)
+{
+#ifdef MEMPAGEHELPER_TRACKING
+	validate_memory(memory, size);
+	uint32_t page = page_size();
+	memory = (unsigned char*)memory - page;
+	size += page * 2;
+#endif
+
+#if MEMPAGEHELPER_WINDOWS
+	if (!VirtualFree(memory, 0, MEM_RELEASE))
+	{
+		last_error = GetLastError();
+#else
+	if (munmap(memory, size) != 0)
+	{
+		last_error = (uint32_t)errno;
+#endif
+		return 1;
+	}
+	last_error = 0;
+	return 0;
+}
+#if MEMPAGEHELPER_WINDOWS
+#pragma warning( pop )
+#endif
 
 void* page_alloc(size_t size, uint32_t access)
 {
 	PROTECTION_TYPE protect;
-	if (!convert_protection(access, &protect))
+#ifdef MEMPAGEHELPER_TRACKING
+	uint32_t alloc_access = access | PAGE_ACCESS_READ | PAGE_ACCESS_WRITE;
+#else
+	uint32_t alloc_access = access;
+#endif
+	if (!convert_protection(alloc_access, &protect))
 	{
 		last_error = INVALID_PARAM;
 		return NULL;
 	}
 
+#ifdef MEMPAGEHELPER_TRACKING
+	uint32_t page = page_size();
+	size_t alloc_size = size + page * 2;
+#else
+	size_t alloc_size = size;
+#endif
+
 	void* addr;
 #if MEMPAGEHELPER_WINDOWS
-	addr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, protect);
+	addr = VirtualAlloc(NULL, alloc_size, MEM_COMMIT | MEM_RESERVE, protect);
 	if (addr == NULL)
 	{
 		last_error = GetLastError();
@@ -165,19 +262,34 @@ void* page_alloc(size_t size, uint32_t access)
 #define MAP_UNINITIALIZED 0
 #endif
 
-	addr = mmap(NULL, size, protect, MAP_PRIVATE | MAP_ANONYMOUS | MAP_UNINITIALIZED, -1, 0);
+	addr = mmap(NULL, alloc_size, protect, MAP_PRIVATE | MAP_ANONYMOUS | MAP_UNINITIALIZED, -1, 0);
 	if (addr == MAP_FAILED)
 	{
 		last_error = (uint32_t)errno;
 #endif
 		return NULL;
 	}
+
+#ifdef MEMPAGEHELPER_TRACKING
+	addr = mark_memory(addr, size, alloc_access);
+
+	if (page_change_access(addr, size, access) != 0)
+	{
+		page_free(addr, size);
+		return NULL;
+	}
+#endif
+
 	last_error = 0;
 	return addr;
 }
 
 int32_t page_change_access(void* memory, size_t size, uint32_t access)
 {
+#ifdef MEMPAGEHELPER_TRACKING
+	validate_memory(memory, size);
+#endif
+
 	PROTECTION_TYPE protect;
 	if (!convert_protection(access, &protect))
 	{
@@ -203,6 +315,10 @@ int32_t page_change_access(void* memory, size_t size, uint32_t access)
 
 int32_t page_lock(void* memory, size_t size)
 {
+#ifdef MEMPAGEHELPER_TRACKING
+	validate_memory(memory, size);
+#endif
+
 #if MEMPAGEHELPER_WINDOWS
 	if (!VirtualLock(memory, size))
 	{
@@ -220,6 +336,10 @@ int32_t page_lock(void* memory, size_t size)
 
 int32_t page_unlock(void* memory, size_t size)
 {
+#ifdef MEMPAGEHELPER_TRACKING
+	validate_memory(memory, size);
+#endif
+
 #if MEMPAGEHELPER_WINDOWS
 	if (!VirtualUnlock(memory, size))
 	{
@@ -237,6 +357,10 @@ int32_t page_unlock(void* memory, size_t size)
 
 int32_t page_flush_instructions(void* memory, size_t size)
 {
+#ifdef MEMPAGEHELPER_TRACKING
+	validate_memory(memory, size);
+#endif
+
 #if MEMPAGEHELPER_WINDOWS
 	if (!FlushInstructionCache(GetCurrentProcess(), memory, size))
 	{
@@ -256,27 +380,52 @@ uint32_t page_last_error(void)
 	return last_error;
 }
 
+#define ERROR_BUFFER_SIZE (64 * 1024)
+
 void page_error_free(void* message)
 {
-	free(message);
+#ifdef MEMPAGEHELPER_TRACKING
+	page_free(message, ERROR_BUFFER_SIZE);
+#else
+#if MEMPAGEHELPER_MSVC
+	void* cache = InterlockedExchangePointer(&error_cache, message);
+#else
+	void* cache = __atomic_exchange_n(&error_cache, message, __ATOMIC_ACQ_REL);
+#endif
+	if (cache != NULL)
+		free(cache);
+#endif
 }
 
-#define ERROR_BUFFER_SIZE (64 * 1024)
+MEMPAGEHELPER_ALLOCATOR(page_error_free, 1) MEMPAGEHELPER_INTERNAL(void*) page_error_alloc(void)
+{
+#ifdef MEMPAGEHELPER_TRACKING
+	return page_alloc(ERROR_BUFFER_SIZE, PAGE_ACCESS_READ | PAGE_ACCESS_WRITE);
+#else
+#if MEMPAGEHELPER_MSVC
+	void* cache = InterlockedExchangePointer(&error_cache, NULL);
+#else
+	void* cache = __atomic_exchange_n(&error_cache, NULL, __ATOMIC_ACQ_REL);
+#endif
+	return cache == NULL ? malloc(ERROR_BUFFER_SIZE) : cache;
+#endif
+}
 
 MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 {
-	MEMPAGEHELPER_SYSCHAR* buffer = (MEMPAGEHELPER_SYSCHAR*)malloc(ERROR_BUFFER_SIZE);
+	MEMPAGEHELPER_SYSCHAR* buffer = page_error_alloc();
 #if MEMPAGEHELPER_WINDOWS
+	static_assert(ERROR_BUFFER_SIZE <= 64 * 1024);
 	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, buffer, ERROR_BUFFER_SIZE, NULL) == 0)
 	{
-		free(buffer);
+		page_error_free(buffer);
 		return NULL;
 	}
 #elif ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE) || defined(__APPLE__)
 	int code = strerror_r((int)error, (char*)buffer, ERROR_BUFFER_SIZE);
 	if (code != 0)
 	{
-		free(buffer);
+		page_error_free(buffer);
 		return NULL;
 	}
 #else
@@ -286,7 +435,7 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 		size_t len = strlen((char*)message);
 		if (len > ERROR_BUFFER_SIZE - 2)
 		{
-			free(buffer);
+			page_error_free(buffer);
 			return NULL;
 		}
 
@@ -300,20 +449,19 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 unsigned char* page_error_message_utf8(uint32_t error)
 {
 #if MEMPAGEHELPER_WINDOWS
-	MEMPAGEHELPER_SYSCHAR* ptr = page_error_message_sys(error);
-	if (ptr == NULL)
+	MEMPAGEHELPER_SYSCHAR* ptr = NULL;
+	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, error, 0, &ptr, 1, NULL) == 0)
 	{
+		LocalFree(ptr);
 		return NULL;
 	}
-	size_t len = wcslen(ptr);
-	unsigned char* buffer = (unsigned char*)malloc(len * 3);
-	int out_len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, ptr, (int)len, (LPSTR)buffer, (int)(len * 3 - 1), NULL, NULL);
-	free(ptr);
+	unsigned char* buffer = page_error_alloc();
+	int out_len = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, ptr, -1, (LPSTR)buffer, ERROR_BUFFER_SIZE, NULL, NULL);
+	LocalFree(ptr);
 
 	if (out_len <= 0)
 		return NULL;
 
-	buffer[out_len] = 0;
 	return buffer;
 #else
 	return page_error_message_sys(error);
