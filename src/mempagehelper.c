@@ -28,8 +28,7 @@ static uint32_t page_size_cache = 0;
 static uint32_t page_alloc_granularity_cache = 0;
 #endif
 
-#ifdef MEMPAGEHELPER_TRACKING
-#else
+#ifndef MEMPAGEHELPER_TRACKING
 static void* error_cache = NULL;
 #endif
 
@@ -163,7 +162,10 @@ MEMPAGEHELPER_INTERNAL(void*) mark_memory(void* memory, size_t size, uint32_t al
 	size_t last_page_content = size % page;
 	if (last_page_content != 0)
 	{
-		memcpy((unsigned char*)memory + size, "End of memory string validation!", min(32, page - last_page_content));
+		size_t check_size = page - last_page_content;
+		if (check_size > 32)
+			check_size = 32;
+		memcpy((unsigned char*)memory + size, "End of memory string validation!", check_size);
 		real_size += page - last_page_content;
 	}
 	unsigned char* end = (unsigned char*)memory + real_size;
@@ -187,7 +189,10 @@ MEMPAGEHELPER_INTERNAL(void) validate_memory(void* memory, size_t size)
 	size_t last_page_content = size % page;
 	if (last_page_content != 0)
 	{
-		assert(memcmp((unsigned char*)memory + size, "End of memory string validation!", min(32, page - last_page_content)) == 0);
+		size_t check_size = page - last_page_content;
+		if (check_size > 32)
+			check_size = 32;
+		assert(memcmp((unsigned char*)memory + size, "End of memory string validation!", check_size) == 0);
 		real_size += page - last_page_content;
 	}
 	unsigned char* end = (unsigned char*)memory + real_size;
@@ -273,7 +278,7 @@ void* page_alloc(size_t size, uint32_t access)
 #ifdef MEMPAGEHELPER_TRACKING
 	addr = mark_memory(addr, size, alloc_access);
 
-	if (page_change_access(addr, size, access) != 0)
+	if (access != (PAGE_ACCESS_READ | PAGE_ACCESS_WRITE) && page_change_access(addr, size, access) != 0)
 	{
 		page_free(addr, size);
 		return NULL;
