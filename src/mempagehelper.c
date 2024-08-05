@@ -120,7 +120,7 @@ MEMPAGEHELPER_INTERNAL(bool) convert_protection(uint32_t access, PROTECTION_TYPE
 		protect |= PROT_EXEC;
 #endif
 
-	* protection = protect;
+	*protection = protect;
 	return true;
 }
 
