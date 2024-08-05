@@ -236,6 +236,12 @@ int32_t page_free(void* memory, size_t size)
 
 void* page_alloc(size_t size, uint32_t access)
 {
+	if (size == 0)
+	{
+		last_error = INVALID_PARAM;
+		return NULL;
+	}
+
 	PROTECTION_TYPE protect;
 #ifdef MEMPAGEHELPER_TRACKING
 	uint32_t alloc_access = access | PAGE_ACCESS_READ | PAGE_ACCESS_WRITE;
@@ -421,7 +427,7 @@ MEMPAGEHELPER_SYSCHAR* page_error_message_sys(uint32_t error)
 	MEMPAGEHELPER_SYSCHAR* buffer = page_error_alloc();
 #if MEMPAGEHELPER_WINDOWS
 	static_assert(ERROR_BUFFER_SIZE <= 64 * 1024);
-	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, buffer, ERROR_BUFFER_SIZE, NULL) == 0)
+	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK, NULL, error, 0, buffer, ERROR_BUFFER_SIZE, NULL) == 0)
 	{
 		page_error_free(buffer);
 		return NULL;
@@ -455,7 +461,7 @@ unsigned char* page_error_message_utf8(uint32_t error)
 {
 #if MEMPAGEHELPER_WINDOWS
 	MEMPAGEHELPER_SYSCHAR* ptr = NULL;
-	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, error, 0, (LPWSTR)&ptr, 1, NULL) == 0)
+	if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_MAX_WIDTH_MASK, NULL, error, 0, (LPWSTR)&ptr, 1, NULL) == 0)
 	{
 		LocalFree(ptr);
 		return NULL;
